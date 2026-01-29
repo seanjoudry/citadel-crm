@@ -1,4 +1,4 @@
-# Palantini
+# Citadel CRM
 
 A personal CRM for managing contacts, tracking interactions, setting reminders, and surfacing stale relationships.
 

@@ -10,7 +10,7 @@ export default function Sidebar() {
   return (
     <aside className="w-56 bg-gray-900 text-white min-h-screen p-4 flex flex-col">
       <div className="mb-8">
-        <h1 className="text-xl font-bold tracking-tight">Palantini</h1>
+        <h1 className="text-xl font-bold tracking-tight">Citadel CRM</h1>
         <p className="text-xs text-gray-400 mt-1">Personal CRM</p>
       </div>
       <nav className="flex flex-col gap-1">
