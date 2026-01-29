@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import type { Contact } from '../../types'
+import { useRegions, useCreateRegion } from '../../hooks/useRegions'
 
 interface Props {
   open: boolean
@@ -9,6 +10,10 @@ interface Props {
 }
 
 export default function ContactForm({ open, contact, onSave, onClose }: Props) {
+  const { data: regions } = useRegions()
+  const createRegion = useCreateRegion()
+  const [newRegionName, setNewRegionName] = useState('')
+
   const [form, setForm] = useState({
     firstName: '',
     lastName: '',
@@ -22,6 +27,7 @@ export default function ContactForm({ open, contact, onSave, onClose }: Props) {
     twitterUrl: '',
     website: '',
     notes: '',
+    regionId: '' as string,
   })
 
   useEffect(() => {
@@ -39,20 +45,24 @@ export default function ContactForm({ open, contact, onSave, onClose }: Props) {
         twitterUrl: contact.twitterUrl || '',
         website: contact.website || '',
         notes: contact.notes || '',
+        regionId: contact.regionId ? String(contact.regionId) : '',
       })
     } else {
       setForm({
         firstName: '', lastName: '', phone: '', email: '', organization: '', title: '',
         location: '', photoUrl: '', linkedinUrl: '', twitterUrl: '', website: '', notes: '',
+        regionId: '',
       })
     }
+    setNewRegionName('')
   }, [contact, open])
 
   if (!open) return null
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
-    onSave(form)
+    const { regionId, ...rest } = form
+    onSave({ ...rest, regionId: regionId ? Number(regionId) : null })
   }
 
   const set = (field: string) => (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
@@ -76,7 +86,39 @@ export default function ContactForm({ open, contact, onSave, onClose }: Props) {
               <Field label="Phone" value={form.phone} onChange={set('phone')} />
               <Field label="Organization" value={form.organization} onChange={set('organization')} />
               <Field label="Title" value={form.title} onChange={set('title')} />
-              <Field label="Location" value={form.location} onChange={set('location')} className="col-span-2" />
+              <Field label="Location" value={form.location} onChange={set('location')} />
+              <div>
+                <label className="block text-xs font-medium text-gray-700 mb-1">Region</label>
+                <select
+                  value={form.regionId}
+                  onChange={(e) => setForm((f) => ({ ...f, regionId: e.target.value }))}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-brand"
+                >
+                  <option value="">None</option>
+                  {(regions || []).map((r) => (
+                    <option key={r.id} value={r.id}>{r.name}</option>
+                  ))}
+                </select>
+                <div className="flex gap-1 mt-1">
+                  <input
+                    type="text"
+                    value={newRegionName}
+                    onChange={(e) => setNewRegionName(e.target.value)}
+                    placeholder="New region..."
+                    className="flex-1 px-2 py-1 text-xs border border-gray-300 rounded-md"
+                  />
+                  <button
+                    type="button"
+                    disabled={!newRegionName.trim()}
+                    onClick={async () => {
+                      const result = await createRegion.mutateAsync({ name: newRegionName.trim() })
+                      setForm((f) => ({ ...f, regionId: String(result.data.id) }))
+                      setNewRegionName('')
+                    }}
+                    className="px-2 py-1 text-xs bg-brand text-white rounded-md disabled:opacity-50"
+                  >+</button>
+                </div>
+              </div>
               <Field label="Photo URL" value={form.photoUrl} onChange={set('photoUrl')} className="col-span-2" />
               <Field label="LinkedIn" value={form.linkedinUrl} onChange={set('linkedinUrl')} />
               <Field label="Twitter" value={form.twitterUrl} onChange={set('twitterUrl')} />

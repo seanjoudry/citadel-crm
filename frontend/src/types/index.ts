@@ -1,3 +1,10 @@
+export interface Region {
+  id: number
+  name: string
+  createdAt: string
+  _count?: { contacts: number }
+}
+
 export interface Contact {
   id: number
   firstName: string
@@ -12,6 +19,8 @@ export interface Contact {
   twitterUrl: string | null
   website: string | null
   notes: string | null
+  regionId: number | null
+  region: Region | null
   lastContactedAt: string | null
   createdAt: string
   updatedAt: string

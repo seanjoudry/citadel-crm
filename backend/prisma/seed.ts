@@ -46,6 +46,7 @@ async function main() {
   await prisma.contact.deleteMany()
   await prisma.tag.deleteMany()
   await prisma.group.deleteMany()
+  await prisma.region.deleteMany()
   await prisma.settings.deleteMany()
 
   // Seed settings
@@ -76,6 +77,15 @@ async function main() {
     prisma.group.create({
       data: { name: 'Community', description: 'Local community members' },
     }),
+  ])
+
+  // Seed regions
+  const regions = await Promise.all([
+    prisma.region.create({ data: { name: 'Cape Breton' } }),
+    prisma.region.create({ data: { name: 'North Shore' } }),
+    prisma.region.create({ data: { name: 'South Shore' } }),
+    prisma.region.create({ data: { name: 'Valley' } }),
+    prisma.region.create({ data: { name: 'HRM' } }),
   ])
 
   // Seed contacts

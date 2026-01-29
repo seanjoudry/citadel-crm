@@ -13,6 +13,7 @@ export const createContactSchema = z.object({
   twitterUrl: z.string().url().nullish().or(z.literal('')),
   website: z.string().url().nullish().or(z.literal('')),
   notes: z.string().nullish(),
+  regionId: z.number().int().positive().nullish(),
 })
 
 export const updateContactSchema = createContactSchema.partial()

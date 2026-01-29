@@ -114,6 +114,7 @@ router.get('/', async (req, res) => {
         tags: { include: { tag: true } },
         groups: { include: { group: true } },
         notableDates: true,
+        region: true,
       },
     }),
     prisma.contact.count({ where }),
@@ -140,6 +141,7 @@ router.get('/:id', async (req, res) => {
       groups: { include: { group: true } },
       notableDates: true,
       reminders: { orderBy: { remindAt: 'asc' } },
+      region: true,
     },
   })
 
@@ -167,6 +169,7 @@ router.post('/', validate(createContactSchema), async (req, res) => {
     include: {
       tags: { include: { tag: true } },
       groups: { include: { group: true } },
+      region: true,
     },
   })
   res.status(201).json({ data: contact })
@@ -196,6 +199,7 @@ router.put('/:id', validate(updateContactSchema), async (req, res) => {
     include: {
       tags: { include: { tag: true } },
       groups: { include: { group: true } },
+      region: true,
     },
   })
   res.json({ data: contact })

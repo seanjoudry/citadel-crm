@@ -4,7 +4,8 @@ import { format } from 'date-fns'
 import { useContact, useUpdateContact, useDeleteContact, useAssignTag, useRemoveTag } from '../hooks/useContacts'
 import { useInteractions, useCreateInteraction, useDeleteInteraction } from '../hooks/useInteractions'
 import { useContactReminders, useCreateReminder, useUpdateReminder, useDeleteReminder } from '../hooks/useReminders'
-import { useTags } from '../hooks/useTags'
+import { useTags, useCreateTag } from '../hooks/useTags'
+import { useRegions, useCreateRegion } from '../hooks/useRegions'
 import type { InteractionType, NotableDate } from '../types'
 import InitialsAvatar from '../components/shared/InitialsAvatar'
 import TagBadge from '../components/tags/TagBadge'
@@ -56,6 +57,8 @@ export default function ContactDetail() {
   })
 
   const { data: allTags } = useTags()
+  const { data: allRegions } = useRegions()
+  const createRegion = useCreateRegion()
 
   // Mutations
   const updateContact = useUpdateContact()
@@ -64,6 +67,7 @@ export default function ContactDetail() {
   const removeInteraction = useDeleteInteraction()
   const assignTag = useAssignTag()
   const removeTag = useRemoveTag()
+  const createTag = useCreateTag()
   const addReminder = useCreateReminder()
   const editReminder = useUpdateReminder()
   const removeReminder = useDeleteReminder()
@@ -89,6 +93,9 @@ export default function ContactDetail() {
   const [showDateForm, setShowDateForm] = useState(false)
   const [dateFormData, setDateFormData] = useState({ type: 'BIRTHDAY', label: '', month: 1, day: 1, year: '', recurring: true, notes: '' })
   const [showTagPicker, setShowTagPicker] = useState(false)
+  const [newTagName, setNewTagName] = useState('')
+  const [showRegionPicker, setShowRegionPicker] = useState(false)
+  const [newRegionName, setNewRegionName] = useState('')
 
   if (isLoading) return <div className="text-center py-12 text-muted">Loading...</div>
   if (!contact) return <div className="text-center py-12 text-muted">Contact not found</div>
@@ -166,6 +173,49 @@ export default function ContactDetail() {
             {[contact.title, contact.organization].filter(Boolean).join(' at ')}
           </p>
           {contact.location && <p className="text-sm text-muted">{contact.location}</p>}
+          <div className="flex items-center gap-2 mt-1">
+            <span className="text-sm text-muted">Region:</span>
+            {contact.region ? (
+              <span className="text-sm font-medium">{contact.region.name}</span>
+            ) : (
+              <span className="text-sm text-muted italic">None</span>
+            )}
+            <button onClick={() => setShowRegionPicker(!showRegionPicker)} className="text-xs text-brand hover:underline">
+              {contact.region ? 'Change' : 'Set'}
+            </button>
+          </div>
+          {showRegionPicker && (
+            <div className="mt-2 space-y-2">
+              <div className="flex flex-wrap gap-1">
+                {contact.regionId && (
+                  <button onClick={() => { updateContact.mutate({ id, data: { regionId: null } }); setShowRegionPicker(false) }}
+                    className="px-2 py-0.5 text-xs border border-gray-300 rounded-full text-muted hover:bg-gray-100">None</button>
+                )}
+                {(allRegions || []).filter((r) => r.id !== contact.regionId).map((region) => (
+                  <button key={region.id} onClick={() => { updateContact.mutate({ id, data: { regionId: region.id } }); setShowRegionPicker(false) }}
+                    className="px-2 py-0.5 text-xs border border-gray-300 rounded-full hover:bg-gray-100">{region.name}</button>
+                ))}
+              </div>
+              <form onSubmit={async (e) => {
+                e.preventDefault()
+                const name = newRegionName.trim()
+                if (!name) return
+                const result = await createRegion.mutateAsync({ name })
+                updateContact.mutate({ id, data: { regionId: result.data.id } })
+                setNewRegionName('')
+                setShowRegionPicker(false)
+              }} className="flex gap-1">
+                <input
+                  type="text"
+                  value={newRegionName}
+                  onChange={(e) => setNewRegionName(e.target.value)}
+                  placeholder="New region..."
+                  className="flex-1 px-2 py-1 text-xs border border-gray-300 rounded-md"
+                />
+                <button type="submit" disabled={!newRegionName.trim()} className="px-2 py-1 text-xs bg-brand text-white rounded-md disabled:opacity-50">Create</button>
+              </form>
+            </div>
+          )}
           <div className="flex flex-wrap gap-2 mt-2">
             {contact.email && <a href={`mailto:${contact.email}`} className="text-sm text-brand hover:underline">{contact.email}</a>}
             {contact.phone && <span className="text-sm text-muted">{contact.phone}</span>}
@@ -176,12 +226,34 @@ export default function ContactDetail() {
             ))}
             <button onClick={() => setShowTagPicker(!showTagPicker)} className="px-2 py-0.5 text-xs border border-dashed border-gray-300 rounded-full text-muted hover:border-gray-400">+ Tag</button>
           </div>
-          {showTagPicker && unassignedTags.length > 0 && (
-            <div className="mt-2 flex flex-wrap gap-1">
-              {unassignedTags.map((tag) => (
-                <button key={tag.id} onClick={() => { assignTag.mutate({ contactId: id, tagId: tag.id }); setShowTagPicker(false) }}
-                  className="px-2 py-0.5 text-xs border border-gray-300 rounded-full hover:bg-gray-100">{tag.name}</button>
-              ))}
+          {showTagPicker && (
+            <div className="mt-2 space-y-2">
+              {unassignedTags.length > 0 && (
+                <div className="flex flex-wrap gap-1">
+                  {unassignedTags.map((tag) => (
+                    <button key={tag.id} onClick={() => { assignTag.mutate({ contactId: id, tagId: tag.id }); setShowTagPicker(false) }}
+                      className="px-2 py-0.5 text-xs border border-gray-300 rounded-full hover:bg-gray-100">{tag.name}</button>
+                  ))}
+                </div>
+              )}
+              <form onSubmit={async (e) => {
+                e.preventDefault()
+                const name = newTagName.trim()
+                if (!name) return
+                const result = await createTag.mutateAsync({ name, color: '#6b7280' })
+                assignTag.mutate({ contactId: id, tagId: result.data.id })
+                setNewTagName('')
+                setShowTagPicker(false)
+              }} className="flex gap-1">
+                <input
+                  type="text"
+                  value={newTagName}
+                  onChange={(e) => setNewTagName(e.target.value)}
+                  placeholder="New tag name..."
+                  className="flex-1 px-2 py-1 text-xs border border-gray-300 rounded-md"
+                />
+                <button type="submit" disabled={!newTagName.trim()} className="px-2 py-1 text-xs bg-brand text-white rounded-md disabled:opacity-50">Create</button>
+              </form>
             </div>
           )}
         </div>
