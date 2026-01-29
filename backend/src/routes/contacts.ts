@@ -2,12 +2,29 @@ import { Router } from 'express'
 import prisma from '../config/database.js'
 import { validate } from '../middleware/validate.js'
 import { createContactSchema, updateContactSchema } from '../validators/contacts.schema.js'
+import { CADENCE_DAYS } from '../constants/cadence.js'
 
 const router = Router()
 
 const OUTBOUND_TYPES = [
   'CALL_OUTBOUND', 'TEXT_OUTBOUND', 'EMAIL_OUTBOUND', 'MEETING', 'MAIL_SENT',
 ]
+
+function addDays(date: Date, days: number): Date {
+  const result = new Date(date)
+  result.setDate(result.getDate() + days)
+  return result
+}
+
+function calculateContactDueAt(
+  cadence: string | null | undefined,
+  lastContactedAt: Date | null,
+): Date | null {
+  if (!cadence) return null
+  const days = CADENCE_DAYS[cadence]
+  const baseDate = lastContactedAt || new Date()
+  return addDays(baseDate, days)
+}
 
 // GET /api/contacts
 router.get('/', async (req, res) => {
@@ -157,6 +174,8 @@ router.get('/:id', async (req, res) => {
 
 // POST /api/contacts
 router.post('/', validate(createContactSchema), async (req, res) => {
+  const contactDueAt = calculateContactDueAt(req.body.cadence, null)
+
   const contact = await prisma.contact.create({
     data: {
       ...req.body,
@@ -165,6 +184,7 @@ router.post('/', validate(createContactSchema), async (req, res) => {
       linkedinUrl: req.body.linkedinUrl || null,
       twitterUrl: req.body.twitterUrl || null,
       website: req.body.website || null,
+      contactDueAt,
     },
     include: {
       tags: { include: { tag: true } },
@@ -191,6 +211,20 @@ router.put('/:id', validate(updateContactSchema), async (req, res) => {
   // Convert empty strings to null for URL fields
   for (const field of ['email', 'photoUrl', 'linkedinUrl', 'twitterUrl', 'website']) {
     if (data[field] === '') data[field] = null
+  }
+
+  // If cadence is being updated, recalculate contactDueAt
+  if ('cadence' in req.body) {
+    // Need to find most recent interaction (any type) to calculate due date
+    const mostRecentInteraction = await prisma.interaction.findFirst({
+      where: { contactId: id },
+      orderBy: { occurredAt: 'desc' },
+      select: { occurredAt: true },
+    })
+    data.contactDueAt = calculateContactDueAt(
+      req.body.cadence,
+      mostRecentInteraction?.occurredAt || existing.lastContactedAt,
+    )
   }
 
   const contact = await prisma.contact.update({

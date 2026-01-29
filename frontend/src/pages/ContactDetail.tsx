@@ -7,6 +7,8 @@ import { useContactReminders, useCreateReminder, useUpdateReminder, useDeleteRem
 import { useTags, useCreateTag } from '../hooks/useTags'
 import { useRegions, useCreateRegion } from '../hooks/useRegions'
 import type { InteractionType, NotableDate } from '../types'
+import { CADENCE_OPTIONS } from '../types'
+import { formatDistanceToNow } from 'date-fns'
 import InitialsAvatar from '../components/shared/InitialsAvatar'
 import TagBadge from '../components/tags/TagBadge'
 import ConfirmDialog from '../components/shared/ConfirmDialog'
@@ -96,6 +98,7 @@ export default function ContactDetail() {
   const [newTagName, setNewTagName] = useState('')
   const [showRegionPicker, setShowRegionPicker] = useState(false)
   const [newRegionName, setNewRegionName] = useState('')
+  const [showCadencePicker, setShowCadencePicker] = useState(false)
 
   if (isLoading) return <div className="text-center py-12 text-muted">Loading...</div>
   if (!contact) return <div className="text-center py-12 text-muted">Contact not found</div>
@@ -214,6 +217,60 @@ export default function ContactDetail() {
                 />
                 <button type="submit" disabled={!newRegionName.trim()} className="px-2 py-1 text-xs bg-brand text-white rounded-md disabled:opacity-50">Create</button>
               </form>
+            </div>
+          )}
+          <div className="flex items-center gap-2 mt-1">
+            <span className="text-sm text-muted">Cadence:</span>
+            {contact.cadence ? (
+              <>
+                <span className="text-sm font-medium">
+                  {CADENCE_OPTIONS.find(o => o.value === contact.cadence)?.label}
+                </span>
+                {contact.contactDueAt && (
+                  <span className={`text-xs ${
+                    new Date(contact.contactDueAt) < new Date()
+                      ? 'text-danger font-medium'
+                      : 'text-muted'
+                  }`}>
+                    {new Date(contact.contactDueAt) < new Date()
+                      ? `(${formatDistanceToNow(new Date(contact.contactDueAt))} overdue)`
+                      : `(due ${formatDistanceToNow(new Date(contact.contactDueAt), { addSuffix: true })})`
+                    }
+                  </span>
+                )}
+              </>
+            ) : (
+              <span className="text-sm text-muted italic">None</span>
+            )}
+            <button onClick={() => setShowCadencePicker(!showCadencePicker)} className="text-xs text-brand hover:underline">
+              {contact.cadence ? 'Change' : 'Set'}
+            </button>
+          </div>
+          {showCadencePicker && (
+            <div className="mt-2 flex flex-wrap gap-1">
+              {contact.cadence && (
+                <button
+                  onClick={() => {
+                    updateContact.mutate({ id, data: { cadence: null } })
+                    setShowCadencePicker(false)
+                  }}
+                  className="px-2 py-0.5 text-xs border border-gray-300 rounded-full text-muted hover:bg-gray-100"
+                >
+                  None
+                </button>
+              )}
+              {CADENCE_OPTIONS.filter(o => o.value !== contact.cadence).map((option) => (
+                <button
+                  key={option.value}
+                  onClick={() => {
+                    updateContact.mutate({ id, data: { cadence: option.value } })
+                    setShowCadencePicker(false)
+                  }}
+                  className="px-2 py-0.5 text-xs border border-gray-300 rounded-full hover:bg-gray-100"
+                >
+                  {option.label}
+                </button>
+              ))}
             </div>
           )}
           <div className="flex flex-wrap gap-2 mt-2">

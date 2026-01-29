@@ -4,6 +4,7 @@ import { useDashboard } from '../hooks/useDashboard'
 import { useUpdateReminder } from '../hooks/useReminders'
 import InitialsAvatar from '../components/shared/InitialsAvatar'
 import type { NotableDate } from '../types'
+import { CADENCE_OPTIONS } from '../types'
 
 const INTERACTION_LABELS: Record<string, string> = {
   CALL_INBOUND: 'Call (In)', CALL_OUTBOUND: 'Call (Out)', CALL_MISSED: 'Missed Call',
@@ -20,7 +21,7 @@ export default function Dashboard() {
   if (isLoading) return <div className="text-center py-12 text-muted">Loading...</div>
   if (!data) return null
 
-  const { needsAttention, upcomingReminders, upcomingDates, recentActivity, stats } = data
+  const { needsAttention, lapsedContacts, upcomingReminders, upcomingDates, recentActivity, stats } = data
 
   return (
     <div>
@@ -55,6 +56,53 @@ export default function Dashboard() {
             </div>
           ) : (
             <div className="p-6 text-center text-sm text-muted">All contacts are up to date!</div>
+          )}
+        </div>
+
+        {/* Lapsed Contacts */}
+        <div className="bg-white rounded-lg border border-gray-200 shadow-sm">
+          <div className="px-4 py-3 border-b border-gray-200">
+            <h2 className="font-semibold text-gray-900">Lapsed Contacts</h2>
+          </div>
+          {lapsedContacts.length > 0 ? (
+            <div>
+              {lapsedContacts.map((c) => {
+                const daysOverdue = c.contactDueAt
+                  ? Math.floor((Date.now() - new Date(c.contactDueAt).getTime()) / 86400000)
+                  : 0
+                const cadenceLabel = CADENCE_OPTIONS.find(o => o.value === c.cadence)?.label
+
+                return (
+                  <Link
+                    key={c.id}
+                    to={`/contacts/${c.id}`}
+                    className="flex items-center gap-3 px-4 py-3 hover:bg-gray-50 border-b border-gray-100 last:border-0"
+                  >
+                    <InitialsAvatar
+                      firstName={c.firstName}
+                      lastName={c.lastName}
+                      photoUrl={c.photoUrl}
+                      size="sm"
+                    />
+                    <div className="flex-1 min-w-0">
+                      <span className="text-sm font-medium">
+                        {c.firstName} {c.lastName}
+                      </span>
+                      <span className="text-xs text-muted ml-2">
+                        ({cadenceLabel})
+                      </span>
+                    </div>
+                    <span className="text-xs text-danger font-medium">
+                      {daysOverdue} days overdue
+                    </span>
+                  </Link>
+                )
+              })}
+            </div>
+          ) : (
+            <div className="p-6 text-center text-sm text-muted">
+              All tracked contacts are on schedule!
+            </div>
           )}
         </div>
 

@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import type { Contact } from '../../types'
+import { CADENCE_OPTIONS } from '../../types'
 import { useRegions, useCreateRegion } from '../../hooks/useRegions'
 
 interface Props {
@@ -28,6 +29,7 @@ export default function ContactForm({ open, contact, onSave, onClose }: Props) {
     website: '',
     notes: '',
     regionId: '' as string,
+    cadence: '' as string,
   })
 
   useEffect(() => {
@@ -46,12 +48,13 @@ export default function ContactForm({ open, contact, onSave, onClose }: Props) {
         website: contact.website || '',
         notes: contact.notes || '',
         regionId: contact.regionId ? String(contact.regionId) : '',
+        cadence: contact.cadence || '',
       })
     } else {
       setForm({
         firstName: '', lastName: '', phone: '', email: '', organization: '', title: '',
         location: '', photoUrl: '', linkedinUrl: '', twitterUrl: '', website: '', notes: '',
-        regionId: '',
+        regionId: '', cadence: '',
       })
     }
     setNewRegionName('')
@@ -61,8 +64,12 @@ export default function ContactForm({ open, contact, onSave, onClose }: Props) {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
-    const { regionId, ...rest } = form
-    onSave({ ...rest, regionId: regionId ? Number(regionId) : null })
+    const { regionId, cadence, ...rest } = form
+    onSave({
+      ...rest,
+      regionId: regionId ? Number(regionId) : null,
+      cadence: cadence || null,
+    })
   }
 
   const set = (field: string) => (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
@@ -118,6 +125,19 @@ export default function ContactForm({ open, contact, onSave, onClose }: Props) {
                     className="px-2 py-1 text-xs bg-brand text-white rounded-md disabled:opacity-50"
                   >+</button>
                 </div>
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-gray-700 mb-1">Contact Cadence</label>
+                <select
+                  value={form.cadence}
+                  onChange={(e) => setForm((f) => ({ ...f, cadence: e.target.value }))}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-brand"
+                >
+                  <option value="">None</option>
+                  {CADENCE_OPTIONS.map((o) => (
+                    <option key={o.value} value={o.value}>{o.label}</option>
+                  ))}
+                </select>
               </div>
               <Field label="Photo URL" value={form.photoUrl} onChange={set('photoUrl')} className="col-span-2" />
               <Field label="LinkedIn" value={form.linkedinUrl} onChange={set('linkedinUrl')} />

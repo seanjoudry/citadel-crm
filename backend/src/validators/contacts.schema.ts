@@ -1,5 +1,10 @@
 import { z } from 'zod'
 
+const cadenceEnum = z.enum([
+  'BIWEEKLY', 'MONTHLY', 'BIMONTHLY',
+  'QUARTERLY', 'SEMIANNUAL', 'ANNUAL',
+])
+
 export const createContactSchema = z.object({
   firstName: z.string().min(1, 'First name is required'),
   lastName: z.string().min(1, 'Last name is required'),
@@ -14,6 +19,7 @@ export const createContactSchema = z.object({
   website: z.string().url().nullish().or(z.literal('')),
   notes: z.string().nullish(),
   regionId: z.number().int().positive().nullish(),
+  cadence: cadenceEnum.nullish(),
 })
 
 export const updateContactSchema = createContactSchema.partial()

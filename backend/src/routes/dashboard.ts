@@ -20,21 +20,36 @@ router.get('/', async (_req, res) => {
 
   const [
     needsAttention,
+    lapsedContacts,
     upcomingReminders,
     recentActivity,
     totalContacts,
     interactionsThisWeek,
     interactionsThisMonth,
   ] = await Promise.all([
-    // Contacts needing attention
+    // Contacts needing attention (only those WITHOUT cadence - they use global threshold)
     prisma.contact.findMany({
       where: {
+        cadence: null,
         OR: [
           { lastContactedAt: { lt: cutoff } },
           { lastContactedAt: null },
         ],
       },
       orderBy: { lastContactedAt: { sort: 'asc', nulls: 'first' } },
+      take: 10,
+      include: {
+        tags: { include: { tag: true } },
+      },
+    }),
+
+    // Lapsed contacts (have cadence, past due)
+    prisma.contact.findMany({
+      where: {
+        cadence: { not: null },
+        contactDueAt: { lt: now },
+      },
+      orderBy: { contactDueAt: 'asc' },
       take: 10,
       include: {
         tags: { include: { tag: true } },
@@ -115,6 +130,7 @@ router.get('/', async (_req, res) => {
   res.json({
     data: {
       needsAttention,
+      lapsedContacts,
       upcomingReminders,
       upcomingDates,
       recentActivity,

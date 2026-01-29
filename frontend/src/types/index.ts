@@ -5,6 +5,23 @@ export interface Region {
   _count?: { contacts: number }
 }
 
+export type ContactCadence =
+  | 'BIWEEKLY'
+  | 'MONTHLY'
+  | 'BIMONTHLY'
+  | 'QUARTERLY'
+  | 'SEMIANNUAL'
+  | 'ANNUAL'
+
+export const CADENCE_OPTIONS: { value: ContactCadence; label: string; days: number }[] = [
+  { value: 'BIWEEKLY', label: 'Bi-weekly', days: 14 },
+  { value: 'MONTHLY', label: 'Monthly', days: 30 },
+  { value: 'BIMONTHLY', label: 'Bi-Monthly', days: 60 },
+  { value: 'QUARTERLY', label: 'Quarterly', days: 90 },
+  { value: 'SEMIANNUAL', label: '6 Months', days: 180 },
+  { value: 'ANNUAL', label: 'Annually', days: 365 },
+]
+
 export interface Contact {
   id: number
   firstName: string
@@ -21,6 +38,8 @@ export interface Contact {
   notes: string | null
   regionId: number | null
   region: Region | null
+  cadence: ContactCadence | null
+  contactDueAt: string | null
   lastContactedAt: string | null
   createdAt: string
   updatedAt: string
@@ -113,6 +132,7 @@ export interface NotableDate {
 
 export interface DashboardData {
   needsAttention: Contact[]
+  lapsedContacts: Contact[]
   upcomingReminders: Reminder[]
   upcomingDates: NotableDate[]
   recentActivity: Interaction[]

@@ -2,12 +2,19 @@ import { Router } from 'express'
 import prisma from '../config/database.js'
 import { validate } from '../middleware/validate.js'
 import { createInteractionSchema, updateInteractionSchema } from '../validators/interactions.schema.js'
+import { CADENCE_DAYS } from '../constants/cadence.js'
 
 const router = Router()
 
 const OUTBOUND_TYPES = [
   'CALL_OUTBOUND', 'TEXT_OUTBOUND', 'EMAIL_OUTBOUND', 'MEETING', 'MAIL_SENT',
 ]
+
+function addDays(date: Date, days: number): Date {
+  const result = new Date(date)
+  result.setDate(result.getDate() + days)
+  return result
+}
 
 // GET /api/contacts/:contactId/interactions
 router.get('/contacts/:contactId/interactions', async (req, res) => {
@@ -58,16 +65,8 @@ router.post(
       },
     })
 
-    // Update lastContactedAt if this is an outbound interaction
-    if (OUTBOUND_TYPES.includes(req.body.type)) {
-      const occurredAt = new Date(req.body.occurredAt)
-      if (!contact.lastContactedAt || occurredAt > contact.lastContactedAt) {
-        await prisma.contact.update({
-          where: { id: contactId },
-          data: { lastContactedAt: occurredAt },
-        })
-      }
-    }
+    // Recalculate both lastContactedAt and contactDueAt
+    await recalculateContactDates(contactId)
 
     res.status(201).json({ data: interaction })
   },
@@ -93,8 +92,8 @@ router.put('/interactions/:id', validate(updateInteractionSchema), async (req, r
     data,
   })
 
-  // Recalculate lastContactedAt for the contact
-  await recalculateLastContacted(existing.contactId)
+  // Recalculate lastContactedAt and contactDueAt for the contact
+  await recalculateContactDates(existing.contactId)
 
   res.json({ data: interaction })
 })
@@ -112,23 +111,52 @@ router.delete('/interactions/:id', async (req, res) => {
   }
 
   await prisma.interaction.delete({ where: { id } })
-  await recalculateLastContacted(existing.contactId)
+  await recalculateContactDates(existing.contactId)
 
   res.json({ data: { deleted: true } })
 })
 
-async function recalculateLastContacted(contactId: number) {
-  const latest = await prisma.interaction.findFirst({
+async function recalculateContactDates(contactId: number) {
+  // Find most recent interaction (ANY type for cadence)
+  const mostRecent = await prisma.interaction.findFirst({
+    where: { contactId },
+    orderBy: { occurredAt: 'desc' },
+    select: { occurredAt: true },
+  })
+
+  // Find most recent OUTBOUND interaction (for lastContactedAt)
+  const mostRecentOutbound = await prisma.interaction.findFirst({
     where: {
       contactId,
       type: { in: OUTBOUND_TYPES as any },
     },
     orderBy: { occurredAt: 'desc' },
+    select: { occurredAt: true },
   })
+
+  const contact = await prisma.contact.findUnique({
+    where: { id: contactId },
+    select: { cadence: true },
+  })
+
+  // Calculate new contactDueAt based on most recent ANY interaction
+  let contactDueAt: Date | null = null
+  if (contact?.cadence) {
+    const days = CADENCE_DAYS[contact.cadence]
+    if (mostRecent) {
+      contactDueAt = addDays(mostRecent.occurredAt, days)
+    } else {
+      // No interactions, use current time as base
+      contactDueAt = addDays(new Date(), days)
+    }
+  }
 
   await prisma.contact.update({
     where: { id: contactId },
-    data: { lastContactedAt: latest?.occurredAt ?? null },
+    data: {
+      lastContactedAt: mostRecentOutbound?.occurredAt ?? null,
+      contactDueAt,
+    },
   })
 }
 

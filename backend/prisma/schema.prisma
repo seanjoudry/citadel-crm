@@ -40,26 +40,37 @@ enum NotableDateType {
   CUSTOM
 }
 
+enum ContactCadence {
+  BIWEEKLY    // 14 days
+  MONTHLY     // 30 days
+  BIMONTHLY   // 60 days
+  QUARTERLY   // 90 days
+  SEMIANNUAL  // 180 days
+  ANNUAL      // 365 days
+}
+
 // ── Models ─────────────────────────────────────────────
 
 model Contact {
-  id              Int       @id @default(autoincrement())
-  firstName       String    @map("first_name")
-  lastName        String    @map("last_name")
+  id              Int             @id @default(autoincrement())
+  firstName       String          @map("first_name")
+  lastName        String          @map("last_name")
   phone           String?
   email           String?
-  photoUrl        String?   @map("photo_url")
+  photoUrl        String?         @map("photo_url")
   organization    String?
   title           String?
   location        String?
-  linkedinUrl     String?   @map("linkedin_url")
-  twitterUrl      String?   @map("twitter_url")
+  linkedinUrl     String?         @map("linkedin_url")
+  twitterUrl      String?         @map("twitter_url")
   website         String?
   notes           String?
-  regionId        Int?      @map("region_id")
-  lastContactedAt DateTime? @map("last_contacted_at")
-  createdAt       DateTime  @default(now()) @map("created_at")
-  updatedAt       DateTime  @updatedAt @map("updated_at")
+  regionId        Int?            @map("region_id")
+  cadence         ContactCadence?
+  contactDueAt    DateTime?       @map("contact_due_at")
+  lastContactedAt DateTime?       @map("last_contacted_at")
+  createdAt       DateTime        @default(now()) @map("created_at")
+  updatedAt       DateTime        @updatedAt @map("updated_at")
 
   region       Region?       @relation(fields: [regionId], references: [id], onDelete: SetNull)
   interactions Interaction[]
@@ -68,6 +79,7 @@ model Contact {
   tags         ContactTag[]
   groups       ContactGroup[]
 
+  @@index([contactDueAt])
   @@map("contacts")
 }
 
