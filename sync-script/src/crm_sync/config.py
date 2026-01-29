@@ -13,7 +13,7 @@ DEFAULT_CONFIG = {
     "api_url": "http://localhost:3001",
     "api_key": "",
     "initial_lookback_days": 365,
-    "create_unknown_contacts": True,
+    "create_unknown_contacts": False,
     "default_region": "US",
 }
 

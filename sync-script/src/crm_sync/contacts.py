@@ -73,23 +73,26 @@ def read_contacts(db_path: Path) -> Iterator[LocalContact]:
 
     try:
         # First, get all contacts with basic info
+        # Note: This is a Core Data SQLite DB, so primary key is Z_PK
+        # and ZNOTE is a foreign key to ZABCDNOTE
         cursor = conn.execute("""
             SELECT
-                ROWID,
-                ZFIRSTNAME,
-                ZLASTNAME,
-                ZORGANIZATION,
-                ZNOTE
-            FROM ZABCDRECORD
-            WHERE ZFIRSTNAME IS NOT NULL
-               OR ZLASTNAME IS NOT NULL
-               OR ZORGANIZATION IS NOT NULL
+                r.Z_PK,
+                r.ZFIRSTNAME,
+                r.ZLASTNAME,
+                r.ZORGANIZATION,
+                n.ZTEXT AS ZNOTE
+            FROM ZABCDRECORD r
+            LEFT JOIN ZABCDNOTE n ON r.ZNOTE = n.Z_PK
+            WHERE r.ZFIRSTNAME IS NOT NULL
+               OR r.ZLASTNAME IS NOT NULL
+               OR r.ZORGANIZATION IS NOT NULL
         """)
 
         contacts = list(cursor)
 
         for row in contacts:
-            rowid = row["ROWID"]
+            rowid = row["Z_PK"]
 
             # Get phone numbers for this contact
             phones = _get_phones(conn, rowid)

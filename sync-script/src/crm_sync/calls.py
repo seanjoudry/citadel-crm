@@ -104,9 +104,10 @@ def read_calls(
 
     try:
         # Build query with optional timestamp filter
+        # Note: This is a Core Data SQLite DB, so primary key is Z_PK
         query = """
             SELECT
-                ROWID,
+                Z_PK,
                 ZADDRESS,
                 ZDATE,
                 ZDURATION,
@@ -126,7 +127,7 @@ def read_calls(
         cursor = conn.execute(query, params)
 
         for row in cursor:
-            rowid = row["ROWID"]
+            rowid = row["Z_PK"]
 
             # Skip already synced calls
             if rowid in exclude_rowids:

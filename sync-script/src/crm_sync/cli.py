@@ -192,7 +192,13 @@ def _sync_contacts(
     local_contacts = list(read_contacts(db_path))
     log_info(f"Found {len(local_contacts)} contacts in macOS Contacts")
 
-    # Fetch existing CRM contacts
+    # Fetch existing CRM contacts (skip in dry-run mode)
+    if dry_run:
+        log_warning("Skipping CRM fetch (dry run)")
+        log_warning(f"Would process {len(local_contacts)} contacts for sync")
+        stats["contacts_created"] = len(local_contacts)
+        return
+
     existing_contacts = client.get_all_contacts()
     log_info(f"Found {len(existing_contacts)} contacts in CRM")
 
