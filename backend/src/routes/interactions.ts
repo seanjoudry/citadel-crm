@@ -44,7 +44,7 @@ router.post(
   '/contacts/:contactId/interactions',
   validate(createInteractionSchema),
   async (req, res) => {
-    const contactId = parseInt(req.params.contactId, 10)
+    const contactId = parseInt(req.params.contactId as string, 10)
 
     const contact = await prisma.contact.findUnique({ where: { id: contactId } })
     if (!contact) {
@@ -74,7 +74,7 @@ router.post(
 
 // PUT /api/interactions/:id
 router.put('/interactions/:id', validate(updateInteractionSchema), async (req, res) => {
-  const id = parseInt(req.params.id, 10)
+  const id = parseInt(req.params.id as string, 10)
 
   const existing = await prisma.interaction.findUnique({ where: { id } })
   if (!existing) {

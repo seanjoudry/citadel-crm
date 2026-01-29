@@ -71,7 +71,7 @@ router.post(
   '/contacts/:contactId/notable-dates',
   validate(createNotableDateSchema),
   async (req, res) => {
-    const contactId = parseInt(req.params.contactId, 10)
+    const contactId = parseInt(req.params.contactId as string, 10)
     const notableDate = await prisma.notableDate.create({
       data: { contactId, ...req.body },
     })
@@ -81,7 +81,7 @@ router.post(
 
 // PUT /api/notable-dates/:id
 router.put('/:id', validate(updateNotableDateSchema), async (req, res) => {
-  const id = parseInt(req.params.id, 10)
+  const id = parseInt(req.params.id as string, 10)
   const notableDate = await prisma.notableDate.update({
     where: { id },
     data: req.body,

@@ -150,7 +150,7 @@ router.get('/', async (req, res) => {
 
 // GET /api/contacts/:id
 router.get('/:id', async (req, res) => {
-  const id = parseInt(req.params.id, 10)
+  const id = parseInt(req.params.id as string, 10)
   const contact = await prisma.contact.findUnique({
     where: { id },
     include: {
@@ -197,7 +197,7 @@ router.post('/', validate(createContactSchema), async (req, res) => {
 
 // PUT /api/contacts/:id
 router.put('/:id', validate(updateContactSchema), async (req, res) => {
-  const id = parseInt(req.params.id, 10)
+  const id = parseInt(req.params.id as string, 10)
 
   const existing = await prisma.contact.findUnique({ where: { id } })
   if (!existing) {
@@ -241,7 +241,7 @@ router.put('/:id', validate(updateContactSchema), async (req, res) => {
 
 // DELETE /api/contacts/:id
 router.delete('/:id', async (req, res) => {
-  const id = parseInt(req.params.id, 10)
+  const id = parseInt(req.params.id as string, 10)
 
   const existing = await prisma.contact.findUnique({ where: { id } })
   if (!existing) {

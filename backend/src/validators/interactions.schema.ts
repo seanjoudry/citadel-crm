@@ -15,7 +15,7 @@ export const createInteractionSchema = z.object({
   type: z.enum(interactionTypes),
   content: z.string().nullish(),
   durationSeconds: z.number().int().positive().nullish(),
-  occurredAt: z.string().datetime().or(z.string().pipe(z.coerce.date().transform(d => d.toISOString()))),
+  occurredAt: z.string().datetime().or(z.coerce.date().transform(d => d.toISOString())),
   source: z.enum(interactionSources).default('MANUAL'),
 })
 

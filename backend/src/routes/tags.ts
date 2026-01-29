@@ -22,7 +22,7 @@ router.post('/', validate(createTagSchema), async (req, res) => {
 
 // PUT /api/tags/:id
 router.put('/:id', validate(updateTagSchema), async (req, res) => {
-  const id = parseInt(req.params.id, 10)
+  const id = parseInt(req.params.id as string, 10)
   const tag = await prisma.tag.update({ where: { id }, data: req.body })
   res.json({ data: tag })
 })
@@ -39,7 +39,7 @@ router.post(
   '/contacts/:contactId/tags',
   validate(assignTagSchema),
   async (req, res) => {
-    const contactId = parseInt(req.params.contactId, 10)
+    const contactId = parseInt(req.params.contactId as string, 10)
     const { tagId } = req.body
 
     const contactTag = await prisma.contactTag.create({

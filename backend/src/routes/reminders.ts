@@ -30,7 +30,7 @@ router.post(
   '/contacts/:contactId/reminders',
   validate(createReminderSchema),
   async (req, res) => {
-    const contactId = parseInt(req.params.contactId, 10)
+    const contactId = parseInt(req.params.contactId as string, 10)
     const reminder = await prisma.reminder.create({
       data: {
         contactId,
@@ -46,7 +46,7 @@ router.post(
 
 // PUT /api/reminders/:id
 router.put('/:id', validate(updateReminderSchema), async (req, res) => {
-  const id = parseInt(req.params.id, 10)
+  const id = parseInt(req.params.id as string, 10)
   const data: any = { ...req.body }
   if (data.remindAt) data.remindAt = new Date(data.remindAt)
 

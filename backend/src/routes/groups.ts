@@ -22,7 +22,7 @@ router.post('/', validate(createGroupSchema), async (req, res) => {
 
 // PUT /api/groups/:id
 router.put('/:id', validate(updateGroupSchema), async (req, res) => {
-  const id = parseInt(req.params.id, 10)
+  const id = parseInt(req.params.id as string, 10)
   const group = await prisma.group.update({ where: { id }, data: req.body })
   res.json({ data: group })
 })
@@ -39,7 +39,7 @@ router.post(
   '/contacts/:contactId/groups',
   validate(assignGroupSchema),
   async (req, res) => {
-    const contactId = parseInt(req.params.contactId, 10)
+    const contactId = parseInt(req.params.contactId as string, 10)
     const { groupId } = req.body
 
     const contactGroup = await prisma.contactGroup.create({
