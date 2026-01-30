@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { useParams, useNavigate } from 'react-router'
 import { format } from 'date-fns'
 import { useContact, useUpdateContact, useDeleteContact, useAssignTag, useRemoveTag } from '../hooks/useContacts'
-import { useInteractions, useCreateInteraction, useDeleteInteraction } from '../hooks/useInteractions'
+import { useInteractions, useCreateInteraction, useDeleteInteraction, useActivityHeatmap } from '../hooks/useInteractions'
 import { useContactReminders, useCreateReminder, useUpdateReminder, useDeleteReminder } from '../hooks/useReminders'
 import { useTags, useCreateTag } from '../hooks/useTags'
 import { useRegions, useCreateRegion } from '../hooks/useRegions'
@@ -14,6 +14,7 @@ import TagBadge from '../components/tags/TagBadge'
 import ConfirmDialog from '../components/shared/ConfirmDialog'
 import Pagination from '../components/shared/Pagination'
 import ContactForm from '../components/contacts/ContactForm'
+import { ActivityHeatmap } from '../components/contacts/ActivityHeatmap'
 import { fetchContactNotableDates, createNotableDate, deleteNotableDate } from '../api/notable-dates'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 
@@ -49,7 +50,9 @@ export default function ContactDetail() {
   const contact = data?.data
 
   const [interactionPage, setInteractionPage] = useState(1)
-  const { data: interactionsData } = useInteractions(id, interactionPage)
+  const [selectedDate, setSelectedDate] = useState<string | null>(null)
+  const { data: interactionsData } = useInteractions(id, interactionPage, selectedDate)
+  const { data: heatmapData, isLoading: heatmapLoading } = useActivityHeatmap(id)
 
   const { data: reminders } = useContactReminders(id)
   const { data: notableDates } = useQuery({
@@ -385,10 +388,38 @@ export default function ContactDetail() {
         </form>
       )}
 
+      {/* Activity Heatmap */}
+      <div className="mb-6">
+        <ActivityHeatmap
+          data={heatmapData?.data ?? []}
+          isLoading={heatmapLoading}
+          selectedDate={selectedDate}
+          onDayClick={(date) => {
+            setSelectedDate(date)
+            setInteractionPage(1)
+          }}
+        />
+      </div>
+
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Activity Timeline (2/3 width) */}
         <div className="lg:col-span-2">
-          <h2 className="text-lg font-semibold mb-3">Activity</h2>
+          <div className="flex items-center justify-between mb-3">
+            <h2 className="text-lg font-semibold">
+              {selectedDate ? `Activity on ${format(new Date(selectedDate), 'MMM d, yyyy')}` : 'Activity'}
+            </h2>
+            {selectedDate && (
+              <button
+                onClick={() => {
+                  setSelectedDate(null)
+                  setInteractionPage(1)
+                }}
+                className="text-sm text-brand hover:underline"
+              >
+                Show all
+              </button>
+            )}
+          </div>
           <div className="bg-white border border-gray-200 rounded-lg">
             {interactionsData && interactionsData.data.length > 0 ? (
               <>
@@ -412,7 +443,11 @@ export default function ContactDetail() {
                 <Pagination page={interactionsData.meta.page} totalPages={interactionsData.meta.totalPages} onPageChange={setInteractionPage} />
               </>
             ) : (
-              <div className="p-8 text-center text-muted text-sm">No interactions yet. Use the buttons above to log one.</div>
+              <div className="p-8 text-center text-muted text-sm">
+                {selectedDate
+                  ? `No interactions on ${format(new Date(selectedDate), 'MMM d, yyyy')}`
+                  : 'No interactions yet. Use the buttons above to log one.'}
+              </div>
             )}
           </div>
         </div>

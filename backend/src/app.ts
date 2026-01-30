@@ -12,6 +12,7 @@ import dashboardRouter from './routes/dashboard.js'
 import settingsRouter from './routes/settings.js'
 import importRouter from './routes/import.js'
 import regionsRouter from './routes/regions.js'
+import activityRouter from './routes/activity.js'
 
 const app = express()
 
@@ -35,6 +36,7 @@ app.use('/api/dashboard', dashboardRouter)
 app.use('/api/settings', settingsRouter)
 app.use('/api/import', importRouter)
 app.use('/api/regions', regionsRouter)
+app.use('/api', activityRouter) // Mounts /api/contacts/:contactId/activity-heatmap
 
 // Health check
 app.get('/api/health', (_req, res) => {

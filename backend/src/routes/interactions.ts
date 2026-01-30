@@ -22,15 +22,28 @@ router.get('/contacts/:contactId/interactions', async (req, res) => {
   const page = Math.max(1, parseInt(req.query.page as string, 10) || 1)
   const limit = Math.min(100, Math.max(1, parseInt(req.query.limit as string, 10) || 20))
   const skip = (page - 1) * limit
+  const dateFilter = req.query.date as string | undefined
+
+  // Build where clause with optional date filter
+  const where: any = { contactId }
+  if (dateFilter) {
+    const filterDate = new Date(dateFilter)
+    const nextDay = new Date(filterDate)
+    nextDay.setDate(nextDay.getDate() + 1)
+    where.occurredAt = {
+      gte: filterDate,
+      lt: nextDay,
+    }
+  }
 
   const [interactions, total] = await Promise.all([
     prisma.interaction.findMany({
-      where: { contactId },
+      where,
       orderBy: { occurredAt: 'desc' },
       skip,
       take: limit,
     }),
-    prisma.interaction.count({ where: { contactId } }),
+    prisma.interaction.count({ where }),
   ])
 
   res.json({
