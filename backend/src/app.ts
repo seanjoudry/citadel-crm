@@ -17,7 +17,16 @@ import activityRouter from './routes/activity.js'
 const app = express()
 
 // Middleware
-app.use(cors({ origin: env.ALLOWED_ORIGINS, credentials: true }))
+app.use(cors({
+  origin: (origin, callback) => {
+    if (env.isAllowedOrigin(origin)) {
+      callback(null, true)
+    } else {
+      callback(new Error('Not allowed by CORS'))
+    }
+  },
+  credentials: true,
+}))
 app.use(express.json({ limit: '5mb' }))
 app.use(express.urlencoded({ extended: false }))
 
