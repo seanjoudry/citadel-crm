@@ -12,7 +12,7 @@ export default function Settings() {
 
   const [threshold, setThreshold] = useState('30')
   const [importFile, setImportFile] = useState<File | null>(null)
-  const [importType, setImportType] = useState<'contacts' | 'interactions'>('contacts')
+  const [importType, setImportType] = useState<'contacts' | 'interactions' | 'abbu'>('contacts')
   const [importResult, setImportResult] = useState<any>(null)
   const [saved, setSaved] = useState(false)
 
@@ -89,12 +89,13 @@ export default function Settings() {
               onChange={(e) => setImportType(e.target.value as any)}
               className="px-3 py-2 border border-gray-300 rounded-md text-sm"
             >
-              <option value="contacts">Contacts</option>
-              <option value="interactions">Interactions</option>
+              <option value="abbu">Apple Contacts (.abbu)</option>
+              <option value="contacts">Contacts (CSV/JSON)</option>
+              <option value="interactions">Interactions (CSV/JSON)</option>
             </select>
             <input
               type="file"
-              accept=".csv,.json"
+              accept={importType === 'abbu' ? '.abbu' : '.csv,.json'}
               onChange={(e) => setImportFile(e.target.files?.[0] || null)}
               className="text-sm"
             />
@@ -116,12 +117,20 @@ export default function Settings() {
                   {importResult.data.skipped > 0 && (
                     <p className="text-warning">Skipped: {importResult.data.skipped}</p>
                   )}
+                  {importResult.data.skippedNonICloud > 0 && (
+                    <p className="text-muted">Skipped (non-iCloud): {importResult.data.skippedNonICloud}</p>
+                  )}
+                  {importResult.data.skippedNoPhone > 0 && (
+                    <p className="text-muted">Skipped (no phone): {importResult.data.skippedNoPhone}</p>
+                  )}
                   {importResult.data.errors?.length > 0 && (
                     <details className="mt-2">
                       <summary className="cursor-pointer text-muted">Show errors</summary>
                       <ul className="mt-1 space-y-1">
                         {importResult.data.errors.map((e: any, i: number) => (
-                          <li key={i} className="text-xs text-danger">Row {e.row}: {e.message}</li>
+                          <li key={i} className="text-xs text-danger">
+                            {e.row ? `Row ${e.row}` : e.contact}: {e.message}
+                          </li>
                         ))}
                       </ul>
                     </details>
@@ -130,7 +139,8 @@ export default function Settings() {
               ) : null}
             </div>
           )}
-          <div className="text-xs text-muted">
+          <div className="text-xs text-muted space-y-1">
+            <p><strong>Apple Contacts (.abbu):</strong> Export from Contacts app → File → Export → Contacts Archive. Only imports iCloud contacts with phone numbers.</p>
             <p><strong>Contact CSV columns:</strong> first_name, last_name, email, phone, organization, title, location</p>
             <p><strong>Interaction CSV columns:</strong> email (to match contact), type, content, occurred_at, duration_seconds, source</p>
           </div>

@@ -15,3 +15,28 @@ body {
   margin: 0;
   min-height: 100vh;
 }
+
+/* Activity Heatmap Colors */
+.react-calendar-heatmap .color-empty {
+  fill: #f3f4f6;
+}
+.react-calendar-heatmap .color-scale-1 {
+  fill: #bbf7d0;
+}
+.react-calendar-heatmap .color-scale-2 {
+  fill: #86efac;
+}
+.react-calendar-heatmap .color-scale-3 {
+  fill: #22c55e;
+}
+.react-calendar-heatmap .color-scale-4 {
+  fill: #15803d;
+}
+.react-calendar-heatmap rect:hover {
+  stroke: #374151;
+  stroke-width: 1px;
+}
+.react-calendar-heatmap text {
+  font-size: 8px;
+  fill: #6b7280;
+}

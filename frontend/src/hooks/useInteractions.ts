@@ -4,14 +4,25 @@ import { contactKeys } from './useContacts'
 
 export const interactionKeys = {
   all: ['interactions'] as const,
-  list: (contactId: number, page: number) => [...interactionKeys.all, contactId, page] as const,
+  list: (contactId: number, page: number, date?: string | null) =>
+    [...interactionKeys.all, contactId, page, date ?? 'all'] as const,
+  heatmap: (contactId: number) => [...interactionKeys.all, 'heatmap', contactId] as const,
 }
 
-export function useInteractions(contactId: number, page = 1) {
+export function useInteractions(contactId: number, page = 1, date?: string | null) {
   return useQuery({
-    queryKey: interactionKeys.list(contactId, page),
-    queryFn: () => api.fetchInteractions(contactId, page),
+    queryKey: interactionKeys.list(contactId, page, date),
+    queryFn: () => api.fetchInteractions(contactId, page, 20, date),
     enabled: contactId > 0,
+  })
+}
+
+export function useActivityHeatmap(contactId: number) {
+  return useQuery({
+    queryKey: interactionKeys.heatmap(contactId),
+    queryFn: () => api.fetchActivityHeatmap(contactId),
+    enabled: contactId > 0,
+    staleTime: 5 * 60 * 1000, // 5 minutes
   })
 }
 

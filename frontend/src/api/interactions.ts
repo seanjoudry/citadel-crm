@@ -5,8 +5,30 @@ export function fetchInteractions(
   contactId: number,
   page = 1,
   limit = 20,
+  date?: string | null,
 ): Promise<PaginatedResponse<Interaction>> {
-  return apiFetch(`/api/contacts/${contactId}/interactions?page=${page}&limit=${limit}`)
+  const params = new URLSearchParams({ page: String(page), limit: String(limit) })
+  if (date) params.set('date', date)
+  return apiFetch(`/api/contacts/${contactId}/interactions?${params}`)
+}
+
+export interface HeatmapData {
+  date: string
+  count: number
+}
+
+export interface HeatmapResponse {
+  data: HeatmapData[]
+  meta: {
+    totalInteractions: number
+    activeDays: number
+    startDate: string
+    endDate: string
+  }
+}
+
+export function fetchActivityHeatmap(contactId: number): Promise<HeatmapResponse> {
+  return apiFetch(`/api/contacts/${contactId}/activity-heatmap`)
 }
 
 export function createInteraction(
