@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { fetchSettings, updateSetting } from '../api/settings'
-import { apiUpload } from '../api/client'
+import { apiUpload, apiFetch } from '../api/client'
+import { parseAbbuFile } from '../utils/abbu-parser'
 
 export default function Settings() {
   const qc = useQueryClient()
@@ -14,6 +15,7 @@ export default function Settings() {
   const [importFile, setImportFile] = useState<File | null>(null)
   const [importType, setImportType] = useState<'contacts' | 'interactions' | 'abbu'>('contacts')
   const [importResult, setImportResult] = useState<any>(null)
+  const [importStatus, setImportStatus] = useState<string | null>(null)
   const [saved, setSaved] = useState(false)
 
   useEffect(() => {
@@ -35,14 +37,64 @@ export default function Settings() {
 
   const handleImport = async () => {
     if (!importFile) return
-    const formData = new FormData()
-    formData.append('file', importFile)
+    setImportResult(null)
+    setImportStatus(null)
+
     try {
-      const result = await apiUpload(`/api/import/${importType}`, formData)
-      setImportResult(result)
+      if (importType === 'abbu') {
+        // Parse .abbu file client-side
+        setImportStatus('Reading contacts archive...')
+        const parsed = await parseAbbuFile(importFile)
+
+        if (parsed.contacts.length === 0) {
+          setImportResult({
+            data: {
+              imported: 0,
+              skippedNonICloud: parsed.skippedNonICloud,
+              skippedNoPhone: parsed.skippedNoPhone,
+              errors: [],
+            },
+          })
+          setImportStatus(null)
+          return
+        }
+
+        setImportStatus(`Importing ${parsed.contacts.length} contacts...`)
+
+        // Send extracted contacts as JSON to the existing endpoint
+        const result = await apiFetch<any>('/api/import/contacts', {
+          method: 'POST',
+          body: JSON.stringify(parsed.contacts.map(c => ({
+            first_name: c.firstName,
+            last_name: c.lastName,
+            phone: c.phone,
+            email: c.email,
+            organization: c.organization,
+            title: c.title,
+            notes: c.notes,
+          }))),
+        })
+
+        setImportResult({
+          data: {
+            ...result.data,
+            skippedNonICloud: parsed.skippedNonICloud,
+            skippedNoPhone: parsed.skippedNoPhone,
+          },
+        })
+        qc.invalidateQueries({ queryKey: ['contacts'] })
+      } else {
+        // CSV/JSON file upload
+        const formData = new FormData()
+        formData.append('file', importFile)
+        const result = await apiUpload(`/api/import/${importType}`, formData)
+        setImportResult(result)
+      }
       setImportFile(null)
     } catch (err: any) {
       setImportResult({ error: err.message })
+    } finally {
+      setImportStatus(null)
     }
   }
 
@@ -101,12 +153,17 @@ export default function Settings() {
             />
             <button
               onClick={handleImport}
-              disabled={!importFile}
+              disabled={!importFile || !!importStatus}
               className="px-4 py-2 bg-brand text-white rounded-md text-sm hover:opacity-90 disabled:opacity-50"
             >
-              Import
+              {importStatus ? 'Processing...' : 'Import'}
             </button>
           </div>
+          {importStatus && (
+            <div className="p-3 bg-blue-50 rounded-md text-sm text-blue-700">
+              {importStatus}
+            </div>
+          )}
           {importResult && (
             <div className="p-3 bg-gray-50 rounded-md text-sm">
               {importResult.error ? (
