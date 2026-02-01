@@ -46,21 +46,43 @@ router.get('/', async (req, res) => {
   const where: any = {}
 
   if (search) {
-    where.OR = [
-      { firstName: { contains: search, mode: 'insensitive' } },
-      { lastName: { contains: search, mode: 'insensitive' } },
-      { email: { contains: search, mode: 'insensitive' } },
-      { phone: { contains: search, mode: 'insensitive' } },
-      { organization: { contains: search, mode: 'insensitive' } },
-    ]
+    // Split search into terms and require ALL terms to match somewhere
+    const terms = search.trim().split(/\s+/).filter(Boolean)
+    if (terms.length === 1) {
+      // Single term: search across all fields (original behavior)
+      where.OR = [
+        { firstName: { contains: terms[0], mode: 'insensitive' } },
+        { lastName: { contains: terms[0], mode: 'insensitive' } },
+        { email: { contains: terms[0], mode: 'insensitive' } },
+        { phone: { contains: terms[0], mode: 'insensitive' } },
+        { organization: { contains: terms[0], mode: 'insensitive' } },
+      ]
+    } else {
+      // Multiple terms: ALL terms must match somewhere (enables "Chad Bowie" search)
+      where.AND = [
+        ...(where.AND || []),
+        ...terms.map((term) => ({
+          OR: [
+            { firstName: { contains: term, mode: 'insensitive' } },
+            { lastName: { contains: term, mode: 'insensitive' } },
+            { email: { contains: term, mode: 'insensitive' } },
+            { phone: { contains: term, mode: 'insensitive' } },
+            { organization: { contains: term, mode: 'insensitive' } },
+          ],
+        })),
+      ]
+    }
   }
 
   if (tagIds) {
     const ids = tagIds.split(',').map(Number).filter(Boolean)
     if (ids.length > 0) {
-      where.AND = ids.map((tagId) => ({
-        tags: { some: { tagId } },
-      }))
+      where.AND = [
+        ...(where.AND || []),
+        ...ids.map((tagId) => ({
+          tags: { some: { tagId } },
+        })),
+      ]
     }
   }
 
@@ -79,26 +101,35 @@ router.get('/', async (req, res) => {
     const cutoff = new Date()
     cutoff.setDate(cutoff.getDate() - threshold)
 
-    where.OR = [
-      ...(where.OR || []),
-      { lastContactedAt: { lt: cutoff } },
-      { lastContactedAt: null },
-    ]
-    // If we already had an OR from search, we need to restructure
+    const attentionCondition = {
+      OR: [{ lastContactedAt: { lt: cutoff } }, { lastContactedAt: null }],
+    }
+
     if (search) {
-      const searchOr = [
-        { firstName: { contains: search, mode: 'insensitive' } },
-        { lastName: { contains: search, mode: 'insensitive' } },
-        { email: { contains: search, mode: 'insensitive' } },
-        { phone: { contains: search, mode: 'insensitive' } },
-        { organization: { contains: search, mode: 'insensitive' } },
+      // Combine search (already in where.AND or where.OR) with attention filter
+      const terms = search.trim().split(/\s+/).filter(Boolean)
+      if (terms.length === 1) {
+        // Single term was in where.OR, restructure to AND
+        const searchOr = [
+          { firstName: { contains: terms[0], mode: 'insensitive' } },
+          { lastName: { contains: terms[0], mode: 'insensitive' } },
+          { email: { contains: terms[0], mode: 'insensitive' } },
+          { phone: { contains: terms[0], mode: 'insensitive' } },
+          { organization: { contains: terms[0], mode: 'insensitive' } },
+        ]
+        where.AND = [...(where.AND || []), { OR: searchOr }, attentionCondition]
+        delete where.OR
+      } else {
+        // Multi-term search already uses where.AND, just add attention condition
+        where.AND = [...(where.AND || []), attentionCondition]
+      }
+    } else {
+      // No search, just apply attention filter
+      where.OR = [
+        ...(where.OR || []),
+        { lastContactedAt: { lt: cutoff } },
+        { lastContactedAt: null },
       ]
-      where.AND = [
-        ...(where.AND || []),
-        { OR: searchOr },
-        { OR: [{ lastContactedAt: { lt: cutoff } }, { lastContactedAt: null }] },
-      ]
-      delete where.OR
     }
   }
 
