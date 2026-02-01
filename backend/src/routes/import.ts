@@ -43,19 +43,23 @@ router.post('/contacts', upload.single('file'), async (req, res) => {
   let imported = 0
   for (let i = 0; i < rows.length; i++) {
     const row = rows[i]
-    const firstName = row.first_name || row.firstName
-    const lastName = row.last_name || row.lastName
+    const firstName = row.first_name || row.firstName || ''
+    const lastName = row.last_name || row.lastName || ''
 
-    if (!firstName || !lastName) {
-      errors.push({ row: i + 1, field: 'name', message: 'first_name and last_name are required' })
+    // Require at least a last name (or organization as fallback)
+    if (!lastName && !row.organization) {
+      errors.push({ row: i + 1, field: 'name', message: 'last_name or organization is required' })
       continue
     }
+
+    // Ensure notes is a string, not a number
+    const notes = typeof row.notes === 'string' ? row.notes : null
 
     try {
       await prisma.contact.create({
         data: {
           firstName,
-          lastName,
+          lastName: lastName || row.organization || '',
           phone: row.phone || null,
           email: row.email || null,
           photoUrl: row.photo_url || row.photoUrl || null,
@@ -65,7 +69,7 @@ router.post('/contacts', upload.single('file'), async (req, res) => {
           linkedinUrl: row.linkedin_url || row.linkedinUrl || null,
           twitterUrl: row.twitter_url || row.twitterUrl || null,
           website: row.website || null,
-          notes: row.notes || null,
+          notes,
         },
       })
       imported++

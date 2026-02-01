@@ -122,6 +122,7 @@ export async function parseAbbuFile(file: File): Promise<ParseResult> {
 
     try {
       // Query contacts with phone numbers
+      // Note: ZNOTE is a foreign key, actual notes are in ZABCDNOTE table
       const results = db.exec(`
         SELECT DISTINCT
           r.Z_PK as id,
@@ -129,7 +130,7 @@ export async function parseAbbuFile(file: File): Promise<ParseResult> {
           r.ZLASTNAME as lastName,
           r.ZORGANIZATION as organization,
           r.ZJOBTITLE as title,
-          r.ZNOTE as notes,
+          (SELECT n.ZTEXT FROM ZABCDNOTE n WHERE n.ZCONTACT = r.Z_PK LIMIT 1) as notes,
           (SELECT GROUP_CONCAT(p.ZFULLNUMBER, '|')
            FROM ZABCDPHONENUMBER p
            WHERE p.ZOWNER = r.Z_PK) as phones,
@@ -152,16 +153,31 @@ export async function parseAbbuFile(file: File): Promise<ParseResult> {
             record[col] = row[i]
           })
 
-          const firstName = record.firstName || ''
-          const lastName = record.lastName || record.organization || ''
+          // Handle name fallbacks - ensure we always have firstName and lastName
+          let firstName = record.firstName || ''
+          let lastName = record.lastName || ''
 
-          // Skip contacts without a name
-          if (!firstName && !lastName && !record.organization) {
+          // If no last name but has organization, use organization as last name
+          if (!lastName && record.organization) {
+            lastName = record.organization
+          }
+
+          // If still no name at all, skip this contact
+          if (!firstName && !lastName) {
             continue
+          }
+
+          // If only one name part, put it in lastName (more common for single-name entries)
+          if (firstName && !lastName) {
+            lastName = firstName
+            firstName = ''
           }
 
           const phones = record.phones?.split('|') || []
           const emails = record.emails?.split('|') || []
+
+          // Ensure notes is a string or null, not a number
+          const notes = typeof record.notes === 'string' ? record.notes : null
 
           contacts.push({
             firstName,
@@ -170,7 +186,7 @@ export async function parseAbbuFile(file: File): Promise<ParseResult> {
             email: emails[0]?.toLowerCase() || null,
             organization: record.organization || null,
             title: record.title || null,
-            notes: record.notes || null,
+            notes,
           })
         }
       }
