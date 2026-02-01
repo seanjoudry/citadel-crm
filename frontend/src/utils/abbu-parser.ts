@@ -1,5 +1,5 @@
 import JSZip from 'jszip'
-import initSqlJs, { Database } from 'sql.js'
+import initSqlJs, { type Database } from 'sql.js'
 
 export interface ParsedContact {
   firstName: string
@@ -15,36 +15,6 @@ export interface ParseResult {
   contacts: ParsedContact[]
   skippedNoPhone: number
   skippedNonICloud: number
-}
-
-// Determine source type from metadata files
-function getSourceType(files: JSZip, sourcePath: string): 'icloud' | 'gmail' | 'exchange' | 'local' {
-  const checkContent = (content: string): 'icloud' | 'gmail' | 'exchange' | 'local' => {
-    const lower = content.toLowerCase()
-    if (lower.includes('google') || lower.includes('gmail')) return 'gmail'
-    if (lower.includes('exchange') || lower.includes('outlook')) return 'exchange'
-    if (lower.includes('icloud') || lower.includes('com.apple')) return 'icloud'
-    return 'local'
-  }
-
-  // Check metadata directory
-  const metadataPath = `${sourcePath}/Metadata/`
-  const metadataFiles = Object.keys(files.files).filter(f => f.startsWith(metadataPath) && f.endsWith('.plist'))
-
-  for (const file of metadataFiles) {
-    const content = files.files[file]
-    if (content && !content.dir) {
-      // We'll check this asynchronously
-    }
-  }
-
-  // Check Configuration.plist
-  const configPath = `${sourcePath}/Configuration.plist`
-  if (files.files[configPath]) {
-    // Will check content
-  }
-
-  return 'local' // Default to local which we'll include
 }
 
 async function getSourceTypeAsync(zip: JSZip, sourcePath: string): Promise<'icloud' | 'gmail' | 'exchange' | 'local'> {
