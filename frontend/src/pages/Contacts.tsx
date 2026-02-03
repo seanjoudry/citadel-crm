@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useSearchParams } from 'react-router'
 import { useContacts, useCreateContact } from '../hooks/useContacts'
 import { useTags } from '../hooks/useTags'
 import { useGroups } from '../hooks/useGroups'
@@ -11,12 +12,17 @@ import EmptyState from '../components/shared/EmptyState'
 import type { ContactFilters } from '../types'
 
 export default function Contacts() {
+  const [searchParams, setSearchParams] = useSearchParams()
   const [search, setSearch] = useState('')
   const [selectedTagIds, setSelectedTagIds] = useState<number[]>([])
   const [selectedGroupId, setSelectedGroupId] = useState<number | undefined>()
   const [sort, setSort] = useState('name_asc')
-  const [page, setPage] = useState(1)
   const [showForm, setShowForm] = useState(false)
+
+  const page = Number(searchParams.get('page')) || 1
+  const setPage = (newPage: number) => {
+    setSearchParams(newPage > 1 ? { page: String(newPage) } : {})
+  }
 
   const debouncedSearch = useDebounce(search)
 
